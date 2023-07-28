@@ -11,6 +11,7 @@ from logging.handlers import TimedRotatingFileHandler
 
 
 def setup_logging(log_level):
+    os.makedirs('./logs', exist_ok=True)
     logging.basicConfig(level=log_level)
     # file_log_handler = RotatingFileHandler("logs/log", maxBytes=1024 * 1024 * 100, backupCount=10)
     file_log_handler = TimedRotatingFileHandler("logs/log", when="MIDNIGHT", backupCount=30)
