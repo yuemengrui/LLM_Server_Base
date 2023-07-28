@@ -55,10 +55,11 @@ from info.libs.ai import build_model
 
 llm_dict = {}
 for llm_config in deepcopy(app.config['LLM_MODEL_LIST']):
-    llm = build_model(logger=app.logger, **llm_config)
+    if os.path.exists(llm_config['model_name_or_path']):
+        llm = build_model(logger=app.logger, **llm_config)
 
-    llm_dict[llm_config['model_name']] = {'model_name': llm_config['model_name'],
-                                          'embedding_dim': llm_config['embedding_dim'], 'model': llm}
+        llm_dict[llm_config['model_name']] = {'model_name': llm_config['model_name'],
+                                              'embedding_dim': llm_config['embedding_dim'], 'model': llm}
 
 embedding_model_dict = {}
 for embedding_config in deepcopy(app.config['EMBEDDING_MODEL_LIST']):
