@@ -41,27 +41,28 @@ def text_embedding():
     res = []
 
     if model_name in llm_dict:
-        llm_conf = deepcopy(llm_dict[model_name])
-
+        llm_conf = llm_dict[model_name]
+        temp = {}
         try:
-            model = llm_conf.pop('model')
-            embeddings = model.get_embeddings(sentences)
+            embeddings = llm_conf['model'].get_embeddings(sentences)
             embeddings = [x.tolist() for x in embeddings]
-            llm_conf.update({"embeddings": embeddings})
-            res.append(llm_conf)
+            temp.update({"embeddings": embeddings})
+            temp.update({k: v for k, v in llm_conf.items() if k != 'model'})
+            res.append(deepcopy(temp))
         except Exception as e:
             current_app.logger.error(str({'EXCEPTION': e}) + '\n')
 
     elif model_name in embedding_model_dict:
-        embedding_model_config = deepcopy(embedding_model_dict[model_name])
+        embedding_model_config = embedding_model_dict[model_name]
+        temp = {}
 
         try:
-            model = embedding_model_config.pop('model')
-            embeddings = model.encode(sentences)
+            embeddings = embedding_model_config['model'].encode(sentences)
             embeddings = normalize(embeddings, norm='l2')
             embeddings = [x.tolist() for x in embeddings]
-            embedding_model_config.update({"embeddings": embeddings})
-            res.append(embedding_model_config)
+            temp.update({"embeddings": embeddings})
+            temp.update({k: v for k, v in embedding_model_config.items() if k != 'model'})
+            res.append(deepcopy(temp))
         except Exception as e:
             current_app.logger.error(str({'EXCEPTION': e}) + '\n')
 
