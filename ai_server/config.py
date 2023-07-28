@@ -40,6 +40,25 @@ class DevelopmentConfig(Config):
         }
     ]
 
+    EMBEDDING_MODEL_LIST = [
+        {
+            "embedding_type": "text",
+            "model_name": "m3e-base",
+            "max_seq_length": 512,
+            "embedding_dim": 768,
+            "model_name_or_path": "",
+            "device": "cuda"
+        },
+        {
+            "embedding_type": "text",
+            "model_name": "text2vec-large-chinese",
+            "max_seq_length": 512,
+            "embedding_dim": 1024,
+            "model_name_or_path": "",
+            "device": "cuda"
+        }
+    ]
+
 
 class UatConfig(Config):
     """生产模式下的配置"""

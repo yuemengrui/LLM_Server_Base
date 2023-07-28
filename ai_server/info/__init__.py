@@ -6,6 +6,7 @@ from flask import Flask
 from copy import deepcopy
 from flask_cors import CORS
 from flask_limiter import Limiter
+from sentence_transformers import SentenceTransformer
 from logging.handlers import TimedRotatingFileHandler
 
 
@@ -58,8 +59,20 @@ for llm_config in deepcopy(app.config['LLM_MODEL_LIST']):
     llm_dict[llm_config['model_name']] = {'model_name': llm_config['model_name'],
                                           'embedding_dim': llm_config['embedding_dim'], 'model': llm}
 
+embedding_model_dict = {}
+for embedding_config in deepcopy(app.config['EMBEDDING_MODEL_LIST']):
+    model_name_or_path = embedding_config.pop('model_name_or_path')
+    device = embedding_config.pop('device')
+
+    if model_name_or_path:
+        embedding_model = SentenceTransformer(model_name_or_path=model_name_or_path, device=device)
+
+        embedding_config.update({"model": embedding_model})
+        embedding_model_dict[embedding_config['model_name']] = embedding_config
 
 from info.modules.Chat import chat_blu
+
 app.register_blueprint(chat_blu)
 from info.modules.Embedding import embedding_blu
+
 app.register_blueprint(embedding_blu)

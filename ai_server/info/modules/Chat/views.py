@@ -9,6 +9,7 @@ from info.utils.llm_common import llm_stream_generate, llm_generate
 
 
 @chat_blu.route('/ai/llm/list', methods=['GET'])
+@limiter.limit("60 per minute", override_defaults=False)
 def support_llm_list():
     return jsonify(errcode=RET.OK, errmsg=error_map[RET.OK], data={'llm_list': list(llm_dict.keys())})
 
