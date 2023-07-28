@@ -3,6 +3,7 @@
 import json
 from . import embedding_blu
 from copy import deepcopy
+from sklearn.preprocessing import normalize
 from info import limiter, llm_dict, embedding_model_dict
 from flask import request, jsonify, current_app
 from info.utils.response_code import RET, error_map
@@ -57,6 +58,7 @@ def text_embedding():
         try:
             model = embedding_model_config.pop('model')
             embeddings = model.encode(sentences)
+            embeddings = normalize(embeddings, norm='l2')
             embeddings = [x.tolist() for x in embeddings]
             embedding_model_config.update({"embeddings": embeddings})
             res.append(embedding_model_config)
