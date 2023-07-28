@@ -2,10 +2,20 @@
 # @Author : YueMengRui
 import json
 import torch
+import numpy as np
 import torch.nn.functional as F
 from .base_model import BaseModel
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from transformers.generation.utils import GenerationConfig
+
+
+def torch_gc(device):
+    if torch.cuda.is_available():
+        with torch.cuda.device(device):
+            torch.cuda.empty_cache()
+            torch.cuda.ipc_collect()
+    elif torch.backends.mps.is_available():
+        torch.mps.empty_cache()
 
 
 class BaiChuan(BaseModel):
@@ -101,7 +111,17 @@ class BaiChuan(BaseModel):
 
             messages.append({'role': 'user', 'content': query})
 
-            batch_prompt.append(self._build_chat_input(messages))
+            batch_prompt.append(np.array(self._build_chat_input(messages)))
+
+        max_length = max([len(x) for x in batch_prompt])
+        # left padding
+        batch_prompt = np.array([np.pad(t, (max_length - t.shape[0], 0), 'constant',
+                                        constant_values=self.model.generation_config.pad_token_id) for t in
+                                 batch_prompt])
+        # right padding
+        # batch_prompt = np.array([np.pad(t, (0, max_length - t.shape[0]), 'constant',
+        #                                 constant_values=self.model.generation_config.pad_token_id) for t in
+        #                          batch_prompt])
 
         batch_input = torch.LongTensor(batch_prompt).to(self.device)
 
@@ -111,12 +131,13 @@ class BaiChuan(BaseModel):
         self.model.generation_config.update(**kwargs)
 
         resp_list = self.model.batch_chat(self.tokenizer, batch_input, self.model.generation_config)
-        if torch.backends.mps.is_available():
-            torch.mps.empty_cache()
+
+        torch_gc(self.device)
 
         return resp_list
 
     def lets_stream_chat(self, query_list, history_list, **kwargs):
+        torch_gc(self.device)
         if self.logger:
             self.logger.info(str(kwargs) + '\n')
         batch_prompt = []
@@ -131,7 +152,17 @@ class BaiChuan(BaseModel):
 
             messages.append({'role': 'user', 'content': query})
 
-            batch_prompt.append(self._build_chat_input(messages))
+            batch_prompt.append(np.array(self._build_chat_input(messages)))
+
+        max_length = max([len(x) for x in batch_prompt])
+        # left padding
+        batch_prompt = np.array([np.pad(t, (max_length - t.shape[0], 0), 'constant',
+                                        constant_values=self.model.generation_config.pad_token_id) for t in
+                                 batch_prompt])
+        # right padding
+        # batch_prompt = np.array([np.pad(t, (0, max_length - t.shape[0]), 'constant',
+        #                                 constant_values=self.model.generation_config.pad_token_id) for t in
+        #                          batch_prompt])
 
         batch_input = torch.LongTensor(batch_prompt).to(self.device)
 
@@ -140,6 +171,4 @@ class BaiChuan(BaseModel):
 
         generation_config = self.model.generation_config.update(**kwargs)
         for response in self.model.batch_stream_chat(self.tokenizer, batch_input, generation_config):
-            if torch.backends.mps.is_available():
-                torch.mps.empty_cache()
             yield response, history_list
