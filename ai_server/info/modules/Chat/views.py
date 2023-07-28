@@ -27,8 +27,9 @@ def llm_chat():
     if not queries:
         return jsonify(errcode=RET.PARAMERR, errmsg=error_map[RET.PARAMERR])
 
-    if model_name is None:
-        model_name = list(llm_dict.keys())[0]
+    model_name_list = list(llm_dict.keys())
+    if model_name is None or model_name not in model_name_list:
+        model_name = model_name_list[0]
 
     base_generation_configs = {"history_len": current_app.config['LLM_HISTORY_LEN']}
     prompt_list = []
@@ -62,8 +63,9 @@ def llm_chat_stream():
     if not queries:
         return jsonify(errcode=RET.PARAMERR, errmsg=error_map[RET.PARAMERR])
 
-    if model_name is None:
-        model_name = list(llm_dict.keys())[0]
+    model_name_list = list(llm_dict.keys())
+    if model_name is None or model_name not in model_name_list:
+        model_name = model_name_list[0]
 
     base_generation_configs = {"history_len": current_app.config['LLM_HISTORY_LEN']}
     prompt_list = []
