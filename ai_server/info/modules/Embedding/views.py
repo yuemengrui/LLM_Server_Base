@@ -9,7 +9,7 @@ from flask import request, jsonify, current_app
 from info.utils.response_code import RET, error_map
 
 
-@embedding_blu.route('/ai/embedding_model/list', methods=['GET'])
+@embedding_blu.route('/ai/embedding/model/list', methods=['GET'])
 @limiter.limit("60 per minute", override_defaults=False)
 def support_embedding_model_list():
     res = []
@@ -19,7 +19,7 @@ def support_embedding_model_list():
     return jsonify(errcode=RET.OK, errmsg=error_map[RET.OK], data={'embedding_model_list': res})
 
 
-@embedding_blu.route('/ai/llm/text/embedding', methods=['POST'])
+@embedding_blu.route('/ai/embedding/text', methods=['POST'])
 @limiter.limit("60 per minute", override_defaults=False)
 def text_embedding():
     data = request.get_data()
