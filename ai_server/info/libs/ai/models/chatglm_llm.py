@@ -215,4 +215,5 @@ class ChatGLM(BaseModel):
 
         for resp_list in self.model.batch_stream_chat(self.tokenizer, batch_prompt, max_length=max_length, top_p=top_p,
                                                       temperature=temperature):
+            torch_gc(self.device)
             yield resp_list, history_list

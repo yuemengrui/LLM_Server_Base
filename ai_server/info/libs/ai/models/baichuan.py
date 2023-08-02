@@ -137,7 +137,6 @@ class BaiChuan(BaseModel):
         return resp_list
 
     def lets_stream_chat(self, query_list, history_list, **kwargs):
-        torch_gc(self.device)
         if self.logger:
             self.logger.info(str(kwargs) + '\n')
         batch_prompt = []
@@ -171,4 +170,5 @@ class BaiChuan(BaseModel):
 
         generation_config = self.model.generation_config.update(**kwargs)
         for response in self.model.batch_stream_chat(self.tokenizer, batch_input, generation_config):
+            torch_gc(self.device)
             yield response, history_list
