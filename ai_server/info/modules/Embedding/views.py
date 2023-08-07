@@ -38,7 +38,7 @@ def text_embedding():
     if model_name is None or model_name not in embedding_model_name_list:
         model_name = embedding_model_name_list[0]
 
-    res = []
+    res = {}
 
     if model_name in llm_dict:
         llm_conf = llm_dict[model_name]
@@ -48,7 +48,7 @@ def text_embedding():
             embeddings = [x.tolist() for x in embeddings]
             temp.update({"embeddings": embeddings})
             temp.update({k: v for k, v in llm_conf.items() if k != 'model'})
-            res.append(deepcopy(temp))
+            res = deepcopy(temp)
         except Exception as e:
             current_app.logger.error(str({'EXCEPTION': e}) + '\n')
 
@@ -62,7 +62,7 @@ def text_embedding():
             embeddings = [x.tolist() for x in embeddings]
             temp.update({"embeddings": embeddings})
             temp.update({k: v for k, v in embedding_model_config.items() if k != 'model'})
-            res.append(deepcopy(temp))
+            res = deepcopy(temp)
         except Exception as e:
             current_app.logger.error(str({'EXCEPTION': e}) + '\n')
 
