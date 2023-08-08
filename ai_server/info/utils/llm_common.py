@@ -14,7 +14,7 @@ def llm_stream_generate(model_name, prompt_list, history_list, history_len=10, *
             responses.append(
                 {'model_name': model_name, 'answer': resp_list[i], 'history': history_list[i][-history_len:]})
 
-        yield json.dumps(responses, ensure_ascii=False)
+        yield json.dumps({"answers": responses}, ensure_ascii=False)
 
 
 def llm_generate(model_name, prompt_list, history_list, history_len=10, **kwargs):
