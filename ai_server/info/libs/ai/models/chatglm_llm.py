@@ -69,7 +69,7 @@ class ChatGLM(BaseModel):
         if model_name and '32k' in model_name:
             self.max_length = 32768
 
-        self.max_prompt_length = self.max_length - 1000
+        self.max_prompt_length = self.max_length - 512
         self._load_model(model_name_or_path, device)
 
     def _load_model(self,
@@ -140,8 +140,8 @@ class ChatGLM(BaseModel):
 
     def select_history(self, prompt, history, max_prompt_length):
         base_prompt_token_num = self.token_counter("[Round 1]\n\n问：{}\n\n答：".format(prompt))
+        true_history = []
         if history and base_prompt_token_num < max_prompt_length:
-            true_history = []
             for (old_query, old_response) in history[::-1]:
                 history_token_num = self.token_counter(
                     "[Round 1]\n\n问：{}\n\n答：{}\n\n".format(old_query, old_response))
@@ -151,9 +151,7 @@ class ChatGLM(BaseModel):
                     true_history.insert(0, (old_query, old_response))
                     base_prompt_token_num += history_token_num
 
-            history = deepcopy(true_history)
-
-        return history
+        return true_history
 
     def build_prompt(self, query, history=None):
         if history is None:
@@ -175,9 +173,9 @@ class ChatGLM(BaseModel):
 
     def lets_chat(self, prompt, history, stream, max_prompt_length=None, max_length=None, **kwargs):
 
-        if max_length is None:
+        if max_length is None or max_length > self.max_length:
             max_length = self.max_length
-        if max_prompt_length is None:
+        if max_prompt_length is None or max_prompt_length > self.max_prompt_length:
             max_prompt_length = self.max_prompt_length
 
         if self.logger:
@@ -197,7 +195,8 @@ class ChatGLM(BaseModel):
             for resp in self.model.stream_chat(self.tokenizer, prompt, history, max_length=max_length, **kwargs):
                 generation_tokens = self.token_counter(resp[0])
                 torch_gc(self.device)
-                yield {"answer": resp[0], "history": resp[1],
+                his = [list(x) for x in resp[1]]
+                yield {"answer": resp[0], "history": his,
                        "usage": {"prompt_tokens": prompt_tokens, "generation_tokens": generation_tokens,
                                  "total_tokens": prompt_tokens + generation_tokens}}
         else:
@@ -205,7 +204,8 @@ class ChatGLM(BaseModel):
             generation_tokens = self.token_counter(answer)
 
             torch_gc(self.device)
+            his = [list(x) for x in history]
 
-            return {"answer": answer, "history": history,
+            return {"answer": answer, "history": his,
                     "usage": {"prompt_tokens": prompt_tokens, "generation_tokens": generation_tokens,
                               "total_tokens": prompt_tokens + generation_tokens}}

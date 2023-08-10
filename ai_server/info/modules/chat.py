@@ -1,8 +1,7 @@
 # *_*coding:utf-8 *_*
 # @Author : YueMengRui
-import json
 from fastapi import APIRouter
-from info import llm_dict
+from info import llm_dict, logger
 from .protocol import ChatRequest
 from fastapi.responses import JSONResponse, StreamingResponse
 from info.utils.response_code import RET, error_map
@@ -18,6 +17,7 @@ def support_llm_list():
 
 @router.api_route('/ai/llm/chat', methods=['POST'])
 def llm_chat(chat_request: ChatRequest):
+    logger.info(str(chat_request.json(ensure_ascii=False)) + '\n')
     model_name_list = list(llm_dict.keys())
     if chat_request.model_name is None or chat_request.model_name not in model_name_list:
         chat_request.model_name = model_name_list[0]
@@ -36,4 +36,5 @@ def llm_chat(chat_request: ChatRequest):
                             stream=False,
                             **chat_request.generation_configs)
 
-        return JSONResponse(resp.json())
+
+        return JSONResponse(resp.json(ensure_ascii=False))

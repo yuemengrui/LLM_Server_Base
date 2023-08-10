@@ -1,10 +1,9 @@
 # *_*coding:utf-8 *_*
 # @Author : YueMengRui
-import json
 from fastapi import APIRouter
 from copy import deepcopy
 from sklearn.preprocessing import normalize
-from info import llm_dict, embedding_model_dict
+from info import llm_dict, embedding_model_dict, logger
 from fastapi.responses import JSONResponse
 from .protocol import EmbeddingRequest
 from info.utils.response_code import RET, error_map
@@ -23,6 +22,7 @@ def support_embedding_model_list():
 
 @router.api_route(path='/ai/embedding/text', methods=['POST'])
 def text_embedding(embedding_req: EmbeddingRequest):
+    logger.info(str(embedding_req.json(ensure_ascii=False)) + '\n')
     embedding_model_name_list = []
     embedding_model_name_list.extend(list(llm_dict.keys()))
     embedding_model_name_list.extend(list(embedding_model_dict.keys()))
@@ -41,7 +41,7 @@ def text_embedding(embedding_req: EmbeddingRequest):
             temp.update({k: v for k, v in llm_conf.items() if k != 'model'})
             res = deepcopy(temp)
         except Exception as e:
-            print(str({'EXCEPTION': e}) + '\n')
+            logger.error(str({'EXCEPTION': e}) + '\n')
 
     elif embedding_req.model_name in embedding_model_dict:
         embedding_model_config = embedding_model_dict[embedding_req.model_name]
@@ -55,6 +55,6 @@ def text_embedding(embedding_req: EmbeddingRequest):
             temp.update({k: v for k, v in embedding_model_config.items() if k != 'model'})
             res = deepcopy(temp)
         except Exception as e:
-            print(str({'EXCEPTION': e}) + '\n')
+            logger.error(str({'EXCEPTION': e}) + '\n')
 
     return JSONResponse({"errcode": RET.OK, "errmsg": error_map[RET.OK], "data": res})
