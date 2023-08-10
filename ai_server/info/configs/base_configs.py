@@ -1,9 +1,8 @@
 # *_*coding:utf-8 *_*
 # @Author : YueMengRui
-import os
 
-FASTAPI_HOST = os.getenv('FASTAPI_HOST', '0.0.0.0')
-FASTAPI_PORT = os.getenv('FASTAPI_PORT', 5000)
+FASTAPI_HOST = '0.0.0.0'
+FASTAPI_PORT = 5000
 
 LLM_HISTORY_LEN = 10
 
