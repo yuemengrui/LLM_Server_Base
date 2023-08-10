@@ -18,4 +18,4 @@ def llm_generate(model_name, prompt, history, history_len=10, stream=True, **kwa
         resp.update({"model_name": model_name})
         resp["history"] = resp["history"][-history_len:]
         logger.info(str(resp) + '\n')
-        return ChatResponse(model_name=model_name, answer=resp)
+        return ChatResponse(model_name=model_name, **resp)

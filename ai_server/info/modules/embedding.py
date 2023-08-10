@@ -11,7 +11,7 @@ from info.utils.response_code import RET, error_map
 router = APIRouter()
 
 
-@router.api_route(path='/ai/embedding/model/list', methods=['GET'])
+@router.api_route(path='/ai/embedding/model/list', methods=['GET'], summary="获取支持的embedding模型列表")
 def support_embedding_model_list():
     res = []
     res.extend(list(embedding_model_dict.keys()))
@@ -20,9 +20,9 @@ def support_embedding_model_list():
     return JSONResponse({"errcode": RET.OK, "errmsg": error_map[RET.OK], "data": {"embedding_model_list": res}})
 
 
-@router.api_route(path='/ai/embedding/text', methods=['POST'])
+@router.api_route(path='/ai/embedding/text', methods=['POST'], summary="文本embedding")
 def text_embedding(embedding_req: EmbeddingRequest):
-    logger.info(str(embedding_req.json(ensure_ascii=False)) + '\n')
+    logger.info(str(embedding_req.dict()) + '\n')
     embedding_model_name_list = []
     embedding_model_name_list.extend(list(llm_dict.keys()))
     embedding_model_name_list.extend(list(embedding_model_dict.keys()))

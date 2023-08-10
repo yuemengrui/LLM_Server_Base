@@ -10,14 +10,15 @@ from info.utils.llm_common import llm_generate
 router = APIRouter()
 
 
-@router.api_route(path='/ai/llm/list', methods=['GET', 'POST'])
+@router.api_route(path='/ai/llm/list', methods=['GET'], summary="获取支持的llm列表")
 def support_llm_list():
     return JSONResponse({"errcode": RET.OK, "errmsg": error_map[RET.OK], "data": {"llm_list": list(llm_dict.keys())}})
 
 
-@router.api_route('/ai/llm/chat', methods=['POST'])
+@router.api_route('/ai/llm/chat', methods=['POST'], summary="Chat")
 def llm_chat(chat_request: ChatRequest):
-    logger.info(str(chat_request.json(ensure_ascii=False)) + '\n')
+    logger.info(str(chat_request.dict()) + '\n')
+
     model_name_list = list(llm_dict.keys())
     if chat_request.model_name is None or chat_request.model_name not in model_name_list:
         chat_request.model_name = model_name_list[0]
@@ -35,6 +36,5 @@ def llm_chat(chat_request: ChatRequest):
                             history=chat_request.history,
                             stream=False,
                             **chat_request.generation_configs)
-
 
         return JSONResponse(resp.json(ensure_ascii=False))

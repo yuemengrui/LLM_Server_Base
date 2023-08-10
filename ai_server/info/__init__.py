@@ -7,7 +7,7 @@ from copy import deepcopy
 from info.utils.logger import MyLogger
 from sentence_transformers import SentenceTransformer
 
-app = FastAPI()
+app = FastAPI(title="LLM_Server_Base")
 
 app.add_middleware(
     CORSMiddleware,
