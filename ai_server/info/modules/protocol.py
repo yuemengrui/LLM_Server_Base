@@ -8,7 +8,7 @@ from typing import Dict, List, Literal, Optional, Union
 class ChatRequest(BaseModel):
     model_name: str = None
     prompt: str
-    history: List[List[str, str]] = []
+    history: List = []
     generation_configs: Dict = {"history_len": LLM_HISTORY_LEN}
     stream: bool = True
 
