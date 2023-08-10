@@ -1,4 +1,5 @@
 # *_*coding:utf-8 *_*
+import os
 from info.configs import *
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
@@ -40,5 +41,4 @@ for embedding_config in deepcopy(EMBEDDING_MODEL_LIST):
         embedding_model_dict[embedding_config['model_name']] = embedding_config
 
 from info.modules import register_router
-
 register_router(app)
