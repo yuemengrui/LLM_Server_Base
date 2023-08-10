@@ -12,13 +12,13 @@ class BaseModel(ABC):
         """
 
     @abstractmethod
-    def letschat(self, **kwargs):
+    def lets_chat(self, **kwargs):
         """
         return answer history
         """
 
     @abstractmethod
-    def lets_stream_chat(self, **kwargs):
+    def lets_batch_chat(self, **kwargs):
         """
-        yield answer history
+        batch chat
         """

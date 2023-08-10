@@ -1,55 +1,20 @@
 # *_*coding:utf-8 *_*
 import os
-import logging
-from config import config_dict
-from flask import Flask
+from info.configs import *
+from fastapi import FastAPI
+from starlette.middleware.cors import CORSMiddleware
 from copy import deepcopy
-from flask_cors import CORS
-from flask_limiter import Limiter
 from sentence_transformers import SentenceTransformer
-from logging.handlers import TimedRotatingFileHandler
 
+app = FastAPI()
 
-def setup_logging(log_level):
-    os.makedirs('./logs', exist_ok=True)
-    logging.basicConfig(level=log_level)
-    # file_log_handler = RotatingFileHandler("logs/log", maxBytes=1024 * 1024 * 100, backupCount=10)
-    file_log_handler = TimedRotatingFileHandler("logs/log", when="MIDNIGHT", backupCount=30)
-    file_log_handler.suffix = "%Y-%m-%d.log"
-    formatter = logging.Formatter('[%(asctime)s] %(levelname)s %(filename)s:%(lineno)d %(message)s')
-    file_log_handler.setFormatter(formatter)
-    logging.getLogger().addHandler(file_log_handler)
-
-
-def api_limit_key_func():
-    return '127.0.0.1'
-    # return request.remote_addr or "127.0.0.1"
-
-
-limiter = Limiter(
-    key_func=api_limit_key_func,
-    # 默认方案 每分钟60，适用于所有路线。如果想忽略此全局配置，方法上增加此注解@limiter.exempt
-    default_limits=["60 per minute"]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['*'],
+    allow_credentials=True,
+    allow_methods=['*'],
+    allow_headers=['*'],
 )
-
-app = Flask(__name__, static_folder='', static_url_path='')
-CORS(app)
-config_cls = config_dict['dev']
-app.config.from_object(config_cls)
-if not os.path.exists(app.config['TEMP_FILE_DIR']):
-    os.makedirs(app.config['TEMP_FILE_DIR'])
-
-app.json.ensure_ascii = False
-
-if app.config['LOGGER_MODE'] == 'gunicorn':
-    gunicorn_logger = logging.getLogger('gunicorn.access')
-    app.logger = gunicorn_logger
-    app.logger.handlers = gunicorn_logger.handlers
-    app.logger.setLevel(gunicorn_logger.level)
-else:
-    setup_logging(config_cls.LOG_LEVEL)
-
-limiter.init_app(app)
 
 from info.libs.ai import build_model
 
@@ -72,9 +37,6 @@ for embedding_config in deepcopy(app.config['EMBEDDING_MODEL_LIST']):
         embedding_config.update({"model": embedding_model})
         embedding_model_dict[embedding_config['model_name']] = embedding_config
 
-from info.modules.Chat import chat_blu
 
-app.register_blueprint(chat_blu)
-from info.modules.Embedding import embedding_blu
-
-app.register_blueprint(embedding_blu)
+from info.modules import register_router
+register_router(app)
