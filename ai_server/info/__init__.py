@@ -1,5 +1,6 @@
 # *_*coding:utf-8 *_*
 import os
+import time
 from info.configs import *
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
@@ -18,6 +19,19 @@ app.add_middleware(
 )
 
 logger = MyLogger()
+
+
+@app.middleware("http")
+async def log_requests(request, call_next):
+    logger.info(f"start request {request.method} {request.url.path}")
+    start = time.time()
+
+    response = await call_next(request)
+
+    cost = (time.time() - start) * 1000
+    logger.info(f"end request {request.method} {request.url.path} {cost:.3f}ms")
+    return response
+
 
 from info.libs.ai import build_model
 
@@ -41,4 +55,5 @@ for embedding_config in deepcopy(EMBEDDING_MODEL_LIST):
         embedding_model_dict[embedding_config['model_name']] = embedding_config
 
 from info.modules import register_router
+
 register_router(app)
