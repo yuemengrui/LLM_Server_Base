@@ -28,8 +28,8 @@ async def log_requests(request, call_next):
 
     response = await call_next(request)
 
-    cost = (time.time() - start) * 1000
-    logger.info(f"end request {request.method} {request.url.path} {cost:.3f}ms")
+    cost = time.time() - start
+    logger.info(f"end request {request.method} {request.url.path} {cost:.3f}s")
     return response
 
 

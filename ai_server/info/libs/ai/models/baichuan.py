@@ -1,10 +1,8 @@
 # *_*coding:utf-8 *_*
 # @Author : YueMengRui
-import json
+import time
 import torch
-import numpy as np
 import torch.nn.functional as F
-from typing import Dict
 from .base_model import BaseModel
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from transformers.generation.utils import GenerationConfig
@@ -141,26 +139,30 @@ class BaiChuan(BaseModel):
 
         if stream:
             def stream_generator():
+                start = time.time()
                 for resp in self.model.chat(self.tokenizer, messages, stream=True, **kwargs):
                     generation_tokens = len(self.tokenizer.encode(resp))
+                    average_speed = f"{generation_tokens / (time.time() - start):.3f}token/s"
                     history.append([prompt, resp])
                     torch_gc(self.device)
                     yield {"answer": resp, "history": history,
                            "usage": {"prompt_tokens": prompt_tokens, "generation_tokens": generation_tokens,
-                                     "total_tokens": prompt_tokens + generation_tokens}}
+                                     "total_tokens": prompt_tokens + generation_tokens, "average_speed": average_speed}}
 
             return stream_generator()
 
         else:
+            start = time.time()
             resp = self.model.chat(self.tokenizer, messages, **kwargs)
             generation_tokens = len(self.tokenizer.encode(resp))
+            average_speed = f"{generation_tokens / (time.time() - start):.3f}token/s"
             history.append([prompt, resp])
 
             torch_gc(self.device)
 
             return {"answer": resp, "history": history,
                     "usage": {"prompt_tokens": prompt_tokens, "generation_tokens": generation_tokens,
-                              "total_tokens": prompt_tokens + generation_tokens}}
+                              "total_tokens": prompt_tokens + generation_tokens, "average_speed": average_speed}}
 
     def lets_batch_chat(self, **kwargs):
         pass

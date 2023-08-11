@@ -1,7 +1,7 @@
 # *_*coding:utf-8 *_*
 # @Author : YueMengRui
+import time
 import torch
-from copy import deepcopy
 import torch.nn.functional as F
 from .base_model import BaseModel
 from transformers import AutoTokenizer, AutoModel
@@ -193,22 +193,25 @@ class ChatGLM(BaseModel):
 
         if stream:
             def stream_generator():
+                start = time.time()
                 for resp in self.model.stream_chat(self.tokenizer, prompt, history, max_length=max_length, **kwargs):
                     generation_tokens = self.token_counter(resp[0])
+                    average_speed = f"{generation_tokens / (time.time() - start):.3f}token/s"
                     torch_gc(self.device)
                     his = [list(x) for x in resp[1]]
                     yield {"answer": resp[0], "history": his,
                            "usage": {"prompt_tokens": prompt_tokens, "generation_tokens": generation_tokens,
-                                     "total_tokens": prompt_tokens + generation_tokens}}
+                                     "total_tokens": prompt_tokens + generation_tokens, "average_speed": average_speed}}
 
             return stream_generator()
         else:
+            start = time.time()
             answer, history = self.model.chat(self.tokenizer, prompt, history, max_length=max_length, **kwargs)
             generation_tokens = self.token_counter(answer)
-
+            average_speed = f"{generation_tokens / (time.time() - start):.3f}token/s"
             torch_gc(self.device)
             his = [list(x) for x in history]
 
             return {"answer": answer, "history": his,
                     "usage": {"prompt_tokens": prompt_tokens, "generation_tokens": generation_tokens,
-                              "total_tokens": prompt_tokens + generation_tokens}}
+                              "total_tokens": prompt_tokens + generation_tokens, "average_speed": average_speed}}
