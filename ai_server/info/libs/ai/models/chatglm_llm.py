@@ -196,7 +196,7 @@ class ChatGLM(BaseModel):
                 start = time.time()
                 for resp in self.model.stream_chat(self.tokenizer, prompt, history, max_length=max_length, **kwargs):
                     generation_tokens = self.token_counter(resp[0])
-                    average_speed = f"{generation_tokens / (time.time() - start):.3f}token/s"
+                    average_speed = f"{generation_tokens / (time.time() - start):.3f} token/s"
                     torch_gc(self.device)
                     his = [list(x) for x in resp[1]]
                     yield {"answer": resp[0], "history": his,
@@ -208,7 +208,7 @@ class ChatGLM(BaseModel):
             start = time.time()
             answer, history = self.model.chat(self.tokenizer, prompt, history, max_length=max_length, **kwargs)
             generation_tokens = self.token_counter(answer)
-            average_speed = f"{generation_tokens / (time.time() - start):.3f}token/s"
+            average_speed = f"{generation_tokens / (time.time() - start):.3f} token/s"
             torch_gc(self.device)
             his = [list(x) for x in history]
 

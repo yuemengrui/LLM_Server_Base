@@ -142,7 +142,7 @@ class BaiChuan(BaseModel):
                 start = time.time()
                 for resp in self.model.chat(self.tokenizer, messages, stream=True, **kwargs):
                     generation_tokens = len(self.tokenizer.encode(resp))
-                    average_speed = f"{generation_tokens / (time.time() - start):.3f}token/s"
+                    average_speed = f"{generation_tokens / (time.time() - start):.3f} token/s"
                     history.append([prompt, resp])
                     torch_gc(self.device)
                     yield {"answer": resp, "history": history,
@@ -155,7 +155,7 @@ class BaiChuan(BaseModel):
             start = time.time()
             resp = self.model.chat(self.tokenizer, messages, **kwargs)
             generation_tokens = len(self.tokenizer.encode(resp))
-            average_speed = f"{generation_tokens / (time.time() - start):.3f}token/s"
+            average_speed = f"{generation_tokens / (time.time() - start):.3f} token/s"
             history.append([prompt, resp])
 
             torch_gc(self.device)
