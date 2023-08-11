@@ -192,13 +192,16 @@ class ChatGLM(BaseModel):
                                   'prompt': input_prompt}) + '\n')
 
         if stream:
-            for resp in self.model.stream_chat(self.tokenizer, prompt, history, max_length=max_length, **kwargs):
-                generation_tokens = self.token_counter(resp[0])
-                torch_gc(self.device)
-                his = [list(x) for x in resp[1]]
-                yield {"answer": resp[0], "history": his,
-                       "usage": {"prompt_tokens": prompt_tokens, "generation_tokens": generation_tokens,
-                                 "total_tokens": prompt_tokens + generation_tokens}}
+            def stream_generator():
+                for resp in self.model.stream_chat(self.tokenizer, prompt, history, max_length=max_length, **kwargs):
+                    generation_tokens = self.token_counter(resp[0])
+                    torch_gc(self.device)
+                    his = [list(x) for x in resp[1]]
+                    yield {"answer": resp[0], "history": his,
+                           "usage": {"prompt_tokens": prompt_tokens, "generation_tokens": generation_tokens,
+                                     "total_tokens": prompt_tokens + generation_tokens}}
+
+            return stream_generator()
         else:
             answer, history = self.model.chat(self.tokenizer, prompt, history, max_length=max_length, **kwargs)
             generation_tokens = self.token_counter(answer)
