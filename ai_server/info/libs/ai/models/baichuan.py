@@ -140,13 +140,16 @@ class BaiChuan(BaseModel):
                                   'prompt': input_prompt_str}) + '\n')
 
         if stream:
-            for resp in self.model.chat(self.tokenizer, messages, stream=True, **kwargs):
-                generation_tokens = len(self.tokenizer.encode(resp))
-                history.append([prompt, resp])
-                torch_gc(self.device)
-                yield {"answer": resp, "history": history,
-                       "usage": {"prompt_tokens": prompt_tokens, "generation_tokens": generation_tokens,
-                                 "total_tokens": prompt_tokens + generation_tokens}}
+            def stream_generator():
+                for resp in self.model.chat(self.tokenizer, messages, stream=True, **kwargs):
+                    generation_tokens = len(self.tokenizer.encode(resp))
+                    history.append([prompt, resp])
+                    torch_gc(self.device)
+                    yield {"answer": resp, "history": history,
+                           "usage": {"prompt_tokens": prompt_tokens, "generation_tokens": generation_tokens,
+                                     "total_tokens": prompt_tokens + generation_tokens}}
+
+            return stream_generator()
 
         else:
             resp = self.model.chat(self.tokenizer, messages, **kwargs)
