@@ -4,6 +4,7 @@ import json
 import torch
 import numpy as np
 import torch.nn.functional as F
+from typing import Dict
 from .base_model import BaseModel
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from transformers.generation.utils import GenerationConfig
@@ -26,9 +27,7 @@ class BaiChuan(BaseModel):
         self.device = None
         self.logger = logger
         self._load_model(model_name_or_path, device)
-        if self.logger:
-            self.logger.info(str({'config': self.model.config}) + '\n')
-            self.logger.info(str({'config': self.model.generation_config}) + '\n')
+        self.max_prompt_length = self.model.config.model_max_length - 512
 
     def _load_model(self, model_name_or_path, device):
 
@@ -64,24 +63,46 @@ class BaiChuan(BaseModel):
 
         return embeddings
 
-    def _build_chat_input(self, messages, max_new_tokens=0):
-        max_new_tokens = max_new_tokens or self.model.generation_config.max_new_tokens
-        max_input_tokens = self.model.config.model_max_length - max_new_tokens
-        max_input_tokens = max(self.model.config.model_max_length // 2, max_input_tokens)
-        self.logger.info(str({'max_input_tokens': max_input_tokens}) + '\n')
+    def token_counter(self, messages):
+        total_input, round_input = [], []
+        for message in messages:
+            content_tokens = self.tokenizer.encode(message['content'])
+            if message['role'] == 'user':
+                round_input = [self.model.generation_config.user_token_id] + content_tokens
+            elif message['role'] == 'assistant':
+                round_input = [
+                                  self.model.generation_config.assistant_token_id
+                              ] + content_tokens + [
+                                  self.model.generation_config.eos_token_id
+                              ]
+            total_input = total_input + round_input
+
+        return len(total_input)
+
+    def select_history(self, prompt, history, max_prompt_length):
+        base_prompt_token_num = self.token_counter([{'role': 'user', 'content': prompt}])
+        true_history = []
+        if history and base_prompt_token_num < max_prompt_length:
+            for (old_query, old_response) in history[::-1]:
+                history_token_num = self.token_counter(
+                    [{'role': 'user', 'content': old_query}, {'role': 'assistant', 'content': old_response}])
+
+                if base_prompt_token_num + history_token_num > max_prompt_length:
+                    break
+                else:
+                    true_history.insert(0, [old_query, old_response])
+                    base_prompt_token_num += history_token_num
+
+        return true_history
+
+    def _build_chat_input(self, messages):
         total_input, round_input = [], []
         for i, message in enumerate(messages[::-1]):
             content_tokens = self.tokenizer.encode(message['content'])
             if message['role'] == 'user':
                 round_input = [self.model.generation_config.user_token_id] + content_tokens + round_input
-                if total_input and len(total_input) + len(round_input) > max_input_tokens:
-                    break
-                else:
-                    total_input = round_input + total_input
-                    if len(total_input) >= max_input_tokens:
-                        break
-                    else:
-                        round_input = []
+                total_input = round_input + total_input
+                round_input = []
             elif message['role'] == 'assistant':
                 round_input = [
                                   self.model.generation_config.assistant_token_id
@@ -90,85 +111,56 @@ class BaiChuan(BaseModel):
                               ] + round_input
             else:
                 self.logger.warning(f"message role not supported yet: {message['role']}\n")
-        total_input = total_input[-max_input_tokens:]  # truncate left
         if self.logger:
             self.logger.info(str({'prompt_len': len(total_input), 'prompt': self.tokenizer.decode(total_input)}) + '\n')
         total_input.append(self.model.generation_config.assistant_token_id)
         return total_input
 
-    def letschat(self, query_list, history_list, **kwargs):
+    def lets_chat(self, prompt, history, stream, max_prompt_length=None, **kwargs):
+
+        if max_prompt_length is None or max_prompt_length > self.max_prompt_length:
+            max_prompt_length = self.max_prompt_length
         if self.logger:
-            self.logger.info(str(kwargs) + '\n')
-        batch_prompt = []
+            self.logger.info(str({'max_prompt_length': max_prompt_length}) + '\n' + str(kwargs) + '\n')
 
-        for i in range(len(query_list)):
-            query = query_list[i]
-            history = history_list[i]
-            messages = []
-            for his in history:
-                messages.append({'role': 'user', 'content': his[0]})
-                messages.append({'role': 'assistant', 'content': his[1]})
+        history = self.select_history(prompt, history, max_prompt_length)
 
-            messages.append({'role': 'user', 'content': query})
+        messages = []
+        for his in history:
+            messages.append({'role': 'user', 'content': his[0]})
+            messages.append({'role': 'assistant', 'content': his[1]})
 
-            batch_prompt.append(np.array(self._build_chat_input(messages)))
+        messages.append({'role': 'user', 'content': prompt})
 
-        max_length = max([len(x) for x in batch_prompt])
-        # left padding
-        batch_prompt = np.array([np.pad(t, (max_length - t.shape[0], 0), 'constant',
-                                        constant_values=self.model.generation_config.pad_token_id) for t in
-                                 batch_prompt])
-        # right padding
-        # batch_prompt = np.array([np.pad(t, (0, max_length - t.shape[0]), 'constant',
-        #                                 constant_values=self.model.generation_config.pad_token_id) for t in
-        #                          batch_prompt])
-
-        batch_input = torch.LongTensor(batch_prompt).to(self.device)
-
-        for ind in range(len(batch_prompt)):
-            history_list[ind].append(['', ''])
-
-        self.model.generation_config.update(**kwargs)
-
-        resp_list = self.model.batch_chat(self.tokenizer, batch_input, self.model.generation_config)
-
-        torch_gc(self.device)
-
-        return resp_list
-
-    def lets_stream_chat(self, query_list, history_list, **kwargs):
+        input_prompt = self._build_chat_input(messages)
+        prompt_tokens = len(input_prompt)
+        input_prompt_str = self.tokenizer.decode(input_prompt)
         if self.logger:
-            self.logger.info(str(kwargs) + '\n')
-        batch_prompt = []
+            self.logger.info(str({'prompt_tokens': prompt_tokens, 'prompt_str_len': len(input_prompt_str),
+                                  'prompt': input_prompt_str}) + '\n')
 
-        for i in range(len(query_list)):
-            query = query_list[i]
-            history = history_list[i]
-            messages = []
-            for his in history:
-                messages.append({'role': 'user', 'content': his[0]})
-                messages.append({'role': 'assistant', 'content': his[1]})
+        if stream:
+            def stream_generator():
+                for resp in self.model.chat(self.tokenizer, messages, stream=True, **kwargs):
+                    generation_tokens = len(self.tokenizer.encode(resp))
+                    history.append([prompt, resp])
+                    torch_gc(self.device)
+                    yield {"answer": resp, "history": history,
+                           "usage": {"prompt_tokens": prompt_tokens, "generation_tokens": generation_tokens,
+                                     "total_tokens": prompt_tokens + generation_tokens}}
 
-            messages.append({'role': 'user', 'content': query})
+            return stream_generator()
 
-            batch_prompt.append(np.array(self._build_chat_input(messages)))
+        else:
+            resp = self.model.chat(self.tokenizer, messages, **kwargs)
+            generation_tokens = len(self.tokenizer.encode(resp))
+            history.append([prompt, resp])
 
-        max_length = max([len(x) for x in batch_prompt])
-        # left padding
-        batch_prompt = np.array([np.pad(t, (max_length - t.shape[0], 0), 'constant',
-                                        constant_values=self.model.generation_config.pad_token_id) for t in
-                                 batch_prompt])
-        # right padding
-        # batch_prompt = np.array([np.pad(t, (0, max_length - t.shape[0]), 'constant',
-        #                                 constant_values=self.model.generation_config.pad_token_id) for t in
-        #                          batch_prompt])
-
-        batch_input = torch.LongTensor(batch_prompt).to(self.device)
-
-        for ind in range(len(batch_prompt)):
-            history_list[ind].append(['', ''])
-
-        generation_config = self.model.generation_config.update(**kwargs)
-        for response in self.model.batch_stream_chat(self.tokenizer, batch_input, generation_config):
             torch_gc(self.device)
-            yield response, history_list
+
+            return {"answer": resp, "history": history,
+                    "usage": {"prompt_tokens": prompt_tokens, "generation_tokens": generation_tokens,
+                              "total_tokens": prompt_tokens + generation_tokens}}
+
+    def lets_batch_chat(self, **kwargs):
+        pass

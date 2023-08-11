@@ -4,8 +4,8 @@ import torch
 from copy import deepcopy
 import torch.nn.functional as F
 from .base_model import BaseModel
-from typing import Dict, Optional
 from transformers import AutoTokenizer, AutoModel
+from typing import Optional, Tuple, Union, List, Callable, Dict, Any
 
 
 def torch_gc(device):
@@ -59,11 +59,17 @@ def auto_configure_device_map(num_gpus: int) -> Dict[str, int]:
 
 class ChatGLM(BaseModel):
 
-    def __init__(self, model_name_or_path, device='cuda', logger=None, **kwargs):
+    def __init__(self, model_name_or_path, device='cuda', model_name=None, logger=None, **kwargs):
         self.model = None
         self.tokenizer = None
         self.device = device
         self.logger = logger
+        self.max_length = 8192
+
+        if model_name and '32k' in model_name:
+            self.max_length = 32768
+
+        self.max_prompt_length = self.max_length - 512
         self._load_model(model_name_or_path, device)
 
     def _load_model(self,
@@ -75,8 +81,6 @@ class ChatGLM(BaseModel):
             model_name_or_path,
             trust_remote_code=True
         )
-
-        # self.model = AutoModel.from_pretrained(model_name_or_path,trust_remote_code=True).quantize(8).cuda(0)
 
         if torch.cuda.is_available() and device.lower().startswith("cuda"):
             # 根据当前设备GPU数量决定是否进行多卡部署
@@ -131,89 +135,80 @@ class ChatGLM(BaseModel):
 
         return embeddings
 
-    def letschat(self, query_list, history_list, max_prompt_length=3096, max_length=4096, top_p=0.8, temperature=0.8,
-                 **kwargs):
+    def token_counter(self, prompt):
+        return len(self.tokenizer(prompt, return_tensors="pt").input_ids[0])
+
+    def select_history(self, prompt, history, max_prompt_length):
+        base_prompt_token_num = self.token_counter("[Round 1]\n\n问：{}\n\n答：".format(prompt))
+        true_history = []
+        if history and base_prompt_token_num < max_prompt_length:
+            for (old_query, old_response) in history[::-1]:
+                history_token_num = self.token_counter(
+                    "[Round 1]\n\n问：{}\n\n答：{}\n\n".format(old_query, old_response))
+                if base_prompt_token_num + history_token_num > max_prompt_length:
+                    break
+                else:
+                    true_history.insert(0, (old_query, old_response))
+                    base_prompt_token_num += history_token_num
+
+        return true_history
+
+    def build_prompt(self, query, history=None):
+        if history is None:
+            history = []
+        prompt = ""
+        for i, (old_query, response) in enumerate(history):
+            prompt += "[Round {}]\n\n问：{}\n\n答：{}\n\n".format(i + 1, old_query, response)
+        prompt += "[Round {}]\n\n问：{}\n\n答：".format(len(history) + 1, query)
+        return prompt
+
+    def build_inputs(self, query: str, history: List[Tuple[str, str]] = None):
+        prompt = self.build_prompt(query, history=history)
+        inputs = self.tokenizer([prompt], return_tensors="pt")
+        inputs = inputs.to(self.device)
+        return inputs
+
+    def lets_batch_chat(self, **kwargs):
+        pass
+
+    def lets_chat(self, prompt, history, stream=True, max_prompt_length=None, max_length=None, **kwargs):
+
+        if max_length is None or max_length > self.max_length:
+            max_length = self.max_length
+        if max_prompt_length is None or max_prompt_length > self.max_prompt_length:
+            max_prompt_length = self.max_prompt_length
 
         if self.logger:
-            self.logger.info(str({'max_length': max_length, 'top_p': top_p, 'temperature': temperature,
-                                  'max_prompt_length': max_prompt_length}) + '\n' + str(kwargs) + '\n')
+            self.logger.info(
+                str({'max_length': max_length, 'max_prompt_length': max_prompt_length}) + '\n' + str(kwargs) + '\n')
 
-        batch_prompt = []
-        for i in range(len(query_list)):
-            query = query_list[i]
-            history = history_list[i]
+        history = self.select_history(prompt, history, max_prompt_length)
 
-            if history and len(query) < max_prompt_length:
-                sum_len = len("[Round 1]\n\n问：{}\n\n答：".format(query))
-                true_history = []
-                for (old_query, old_response) in history[::-1]:
-                    history_prompt_len = len("[Round 1]\n\n问：{}\n\n答：{}\n\n".format(old_query, old_response))
-                    if sum_len + history_prompt_len > max_prompt_length:
-                        break
-                    else:
-                        true_history.insert(0, (old_query, old_response))
-                        sum_len += history_prompt_len
-                history = deepcopy(true_history)
+        input_prompt = self.build_prompt(prompt, history)
+        prompt_tokens = self.token_counter(input_prompt)
 
-            prompt = ""
-            for j, (old_query, old_response) in enumerate(history):
-                prompt += "[Round {}]\n\n问：{}\n\n答：{}\n\n".format(j + 1, old_query, old_response)
-            prompt += "[Round {}]\n\n问：{}\n\n答：".format(len(history) + 1, query)
-
-            if self.logger:
-                self.logger.info(str({'prompt_len': len(prompt), 'prompt': prompt}) + '\n')
-
-            batch_prompt.append(prompt)
-
-        response_list = self.model.batch_chat(
-            self.tokenizer,
-            batch_prompt,
-            max_length=max_length,
-            top_p=top_p,
-            temperature=temperature
-        )
-
-        torch_gc(self.device)
-
-        return response_list
-
-    def lets_stream_chat(self, query_list, history_list, max_prompt_length=3096, max_length=4096, top_p=0.8,
-                         temperature=0.8, **kwargs):
         if self.logger:
-            self.logger.info(str({'max_length': max_length, 'top_p': top_p, 'temperature': temperature,
-                                  'max_prompt_length': max_prompt_length}) + '\n' + str(kwargs) + '\n')
+            self.logger.info(str({'prompt_tokens': prompt_tokens, 'prompt_str_len': len(input_prompt),
+                                  'prompt': input_prompt}) + '\n')
 
-        batch_prompt = []
-        for i in range(len(query_list)):
-            query = query_list[i]
-            history = history_list[i]
+        if stream:
+            def stream_generator():
+                for resp in self.model.stream_chat(self.tokenizer, prompt, history, max_length=max_length, **kwargs):
+                    generation_tokens = self.token_counter(resp[0])
+                    torch_gc(self.device)
+                    his = [list(x) for x in resp[1]]
+                    yield {"answer": resp[0], "history": his,
+                           "usage": {"prompt_tokens": prompt_tokens, "generation_tokens": generation_tokens,
+                                     "total_tokens": prompt_tokens + generation_tokens}}
 
-            if history and len(query) < max_prompt_length:
-                sum_len = len("[Round 1]\n\n问：{}\n\n答：".format(query))
-                true_history = []
-                for (old_query, old_response) in history[::-1]:
-                    history_prompt_len = len("[Round 1]\n\n问：{}\n\n答：{}\n\n".format(old_query, old_response))
-                    if sum_len + history_prompt_len > max_prompt_length:
-                        break
-                    else:
-                        true_history.insert(0, (old_query, old_response))
-                        sum_len += history_prompt_len
-                history = deepcopy(true_history)
+            return stream_generator()
+        else:
+            answer, history = self.model.chat(self.tokenizer, prompt, history, max_length=max_length, **kwargs)
+            generation_tokens = self.token_counter(answer)
 
-            prompt = ""
-            for j, (old_query, old_response) in enumerate(history):
-                prompt += "[Round {}]\n\n问：{}\n\n答：{}\n\n".format(j + 1, old_query, old_response)
-            prompt += "[Round {}]\n\n问：{}\n\n答：".format(len(history) + 1, query)
-
-            if self.logger:
-                self.logger.info(str({'prompt_len': len(prompt), 'prompt': prompt}) + '\n')
-
-            batch_prompt.append(prompt)
-
-        for ind in range(len(batch_prompt)):
-            history_list[ind].append(['', ''])
-
-        for resp_list in self.model.batch_stream_chat(self.tokenizer, batch_prompt, max_length=max_length, top_p=top_p,
-                                                      temperature=temperature):
             torch_gc(self.device)
-            yield resp_list, history_list
+            his = [list(x) for x in history]
+
+            return {"answer": answer, "history": his,
+                    "usage": {"prompt_tokens": prompt_tokens, "generation_tokens": generation_tokens,
+                              "total_tokens": prompt_tokens + generation_tokens}}
