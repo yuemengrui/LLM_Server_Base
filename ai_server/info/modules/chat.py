@@ -33,7 +33,6 @@ def llm_chat(chat_request: ChatRequest):
         resp = llm_generate(model_name=chat_request.model_name,
                             prompt=chat_request.prompt,
                             history=chat_request.history,
-                            stream=False,
                             **chat_request.generation_configs)
 
         return JSONResponse(resp.json(ensure_ascii=False))

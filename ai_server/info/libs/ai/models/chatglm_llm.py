@@ -171,7 +171,7 @@ class ChatGLM(BaseModel):
     def lets_batch_chat(self, **kwargs):
         pass
 
-    def lets_chat(self, prompt, history, stream, max_prompt_length=None, max_length=None, **kwargs):
+    def lets_chat(self, prompt, history, stream=True, max_prompt_length=None, max_length=None, **kwargs):
 
         if max_length is None or max_length > self.max_length:
             max_length = self.max_length
