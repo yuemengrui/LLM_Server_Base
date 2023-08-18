@@ -3,7 +3,7 @@
 from fastapi import APIRouter
 from copy import deepcopy
 from sklearn.preprocessing import normalize
-from info import llm_dict, embedding_model_dict, logger
+from info import llm_dict, embedding_model_dict, logger, limiter
 from fastapi.responses import JSONResponse
 from .protocol import EmbeddingRequest
 from info.utils.response_code import RET, error_map
@@ -12,6 +12,7 @@ router = APIRouter()
 
 
 @router.api_route(path='/ai/embedding/model/list', methods=['GET'], summary="获取支持的embedding模型列表")
+@limiter.limit("120/minute")
 def support_embedding_model_list():
     res = []
     res.extend(list(embedding_model_dict.keys()))
@@ -21,8 +22,9 @@ def support_embedding_model_list():
 
 
 @router.api_route(path='/ai/embedding/text', methods=['POST'], summary="文本embedding")
+@limiter.limit("60/minute")
 def text_embedding(embedding_req: EmbeddingRequest):
-    logger.info(str(embedding_req.dict()) + '\n')
+    logger.info(str(embedding_req.dict()))
     embedding_model_name_list = []
     embedding_model_name_list.extend(list(llm_dict.keys()))
     embedding_model_name_list.extend(list(embedding_model_dict.keys()))

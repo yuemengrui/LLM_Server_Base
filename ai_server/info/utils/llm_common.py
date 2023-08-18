@@ -5,6 +5,10 @@ from info import llm_dict, logger
 from info.modules.protocol import ChatResponse
 
 
+def token_counter(model_name: str, prompt: str):
+    return llm_dict[model_name].check_token_len(prompt)
+
+
 def llm_generate(model_name, prompt, history, stream, history_len=10, **kwargs):
     if stream:
         def stream_generator():

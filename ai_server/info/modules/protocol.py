@@ -23,3 +23,8 @@ class ChatResponse(BaseModel):
 class EmbeddingRequest(BaseModel):
     model_name: str = None
     sentences: List[str]
+
+
+class TokenCountRequest(BaseModel):
+    model_name: str = None
+    prompt: str

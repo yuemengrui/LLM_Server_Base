@@ -124,7 +124,7 @@ class ChatGLM(BaseModel):
 
         self.model = self.model.eval()
 
-    def get_embeddings(self, sentences):
+    def get_embeddings(self, sentences: List):
         embeddings = []
         for text in sentences:
             input_ids = self.tokenizer.encode(text, return_tensors="pt").to(self.device)
@@ -134,6 +134,14 @@ class ChatGLM(BaseModel):
             embeddings.append(data)
 
         return embeddings
+
+    def check_token_len(self, prompt: str):
+        code = True
+        prompt_token_len = self.token_counter("[Round 1]\n\n问：{}\n\n答：".format(prompt))
+        if prompt_token_len > self.max_length:
+            code = False
+
+        return code, prompt_token_len, self.max_length
 
     def token_counter(self, prompt):
         return len(self.tokenizer(prompt, return_tensors="pt").input_ids[0])

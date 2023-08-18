@@ -2,6 +2,7 @@
 # @Author : YueMengRui
 import time
 import torch
+from typing import List
 import torch.nn.functional as F
 from .base_model import BaseModel
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -25,7 +26,8 @@ class BaiChuan(BaseModel):
         self.device = None
         self.logger = logger
         self._load_model(model_name_or_path, device)
-        self.max_prompt_length = self.model.config.model_max_length - 512
+        self.max_length = self.model.config.model_max_length
+        self.max_prompt_length = self.max_length - 512
 
     def _load_model(self, model_name_or_path, device):
 
@@ -61,7 +63,16 @@ class BaiChuan(BaseModel):
 
         return embeddings
 
-    def token_counter(self, messages):
+    def check_token_len(self, prompt: str):
+        code = True
+        messages = [{'role': 'user', 'content': prompt}]
+        prompt_token_len = self.token_counter(messages)
+        if prompt_token_len > self.max_length:
+            code = False
+
+        return code, prompt_token_len, self.max_length
+
+    def token_counter(self, messages: List):
         total_input, round_input = [], []
         for message in messages:
             content_tokens = self.tokenizer.encode(message['content'])

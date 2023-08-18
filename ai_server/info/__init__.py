@@ -5,10 +5,15 @@ from info.configs import *
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 from copy import deepcopy
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 from info.utils.logger import MyLogger
 from sentence_transformers import SentenceTransformer
 
+limiter = Limiter(key_func=lambda *args, **kwargs: '127.0.0.1')
 app = FastAPI(title="LLM_Server_Base")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
