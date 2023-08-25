@@ -24,21 +24,21 @@ def support_embedding_model_list(request: Request):
 
 @router.api_route(path='/ai/embedding/text', methods=['POST'], summary="文本embedding")
 @limiter.limit(API_LIMIT['text_embedding'])
-def text_embedding(request: EmbeddingRequest):
-    logger.info(str(request.dict()))
+def text_embedding(embedding_req: EmbeddingRequest, request: Request):
+    logger.info(str(embedding_req.dict()))
     embedding_model_name_list = []
     embedding_model_name_list.extend(list(llm_dict.keys()))
     embedding_model_name_list.extend(list(embedding_model_dict.keys()))
-    if request.model_name is None or request.model_name not in embedding_model_name_list:
-        request.model_name = embedding_model_name_list[0]
+    if embedding_req.model_name is None or embedding_req.model_name not in embedding_model_name_list:
+        embedding_req.model_name = embedding_model_name_list[0]
 
     res = {}
 
-    if request.model_name in llm_dict:
-        llm_conf = llm_dict[request.model_name]
+    if embedding_req.model_name in llm_dict:
+        llm_conf = llm_dict[embedding_req.model_name]
         temp = {}
         try:
-            embeddings = llm_conf['model'].get_embeddings(request.sentences)
+            embeddings = llm_conf['model'].get_embeddings(embedding_req.sentences)
             embeddings = [x.tolist() for x in embeddings]
             temp.update({"embeddings": embeddings})
             temp.update({k: v for k, v in llm_conf.items() if k != 'model'})
@@ -46,12 +46,12 @@ def text_embedding(request: EmbeddingRequest):
         except Exception as e:
             logger.error(str({'EXCEPTION': e}) + '\n')
 
-    elif request.model_name in embedding_model_dict:
-        embedding_model_config = embedding_model_dict[request.model_name]
+    elif embedding_req.model_name in embedding_model_dict:
+        embedding_model_config = embedding_model_dict[embedding_req.model_name]
         temp = {}
 
         try:
-            embeddings = embedding_model_config['model'].encode(request.sentences)
+            embeddings = embedding_model_config['model'].encode(embedding_req.sentences)
             embeddings = normalize(embeddings, norm='l2')
             embeddings = [x.tolist() for x in embeddings]
             temp.update({"embeddings": embeddings})
