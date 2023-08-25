@@ -12,7 +12,7 @@ router = APIRouter()
 
 @router.api_route(path='/ai/llm/list', methods=['GET'], summary="获取支持的llm列表")
 @limiter.limit("120/minute")
-def support_llm_list():
+def support_llm_list(*args, **kwargs):
     return JSONResponse({"errcode": RET.OK, "errmsg": error_map[RET.OK], "data": {"llm_list": list(llm_dict.keys())}})
 
 

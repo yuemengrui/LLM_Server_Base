@@ -13,7 +13,7 @@ router = APIRouter()
 
 @router.api_route(path='/ai/embedding/model/list', methods=['GET'], summary="获取支持的embedding模型列表")
 @limiter.limit("120/minute")
-def support_embedding_model_list():
+def support_embedding_model_list(*args, **kwargs):
     res = []
     res.extend(list(embedding_model_dict.keys()))
     res.extend(list(llm_dict.keys()))
