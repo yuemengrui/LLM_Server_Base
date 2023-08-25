@@ -14,7 +14,7 @@ router = APIRouter()
 
 @router.api_route(path='/ai/embedding/model/list', methods=['GET'], summary="获取支持的embedding模型列表")
 @limiter.limit(API_LIMIT['model_list'])
-def support_embedding_model_list(req: Request):
+def support_embedding_model_list(request: Request):
     res = []
     res.extend(list(embedding_model_dict.keys()))
     res.extend(list(llm_dict.keys()))
@@ -24,21 +24,21 @@ def support_embedding_model_list(req: Request):
 
 @router.api_route(path='/ai/embedding/text', methods=['POST'], summary="文本embedding")
 @limiter.limit(API_LIMIT['text_embedding'])
-def text_embedding(embedding_req: EmbeddingRequest):
-    logger.info(str(embedding_req.dict()))
+def text_embedding(request: EmbeddingRequest):
+    logger.info(str(request.dict()))
     embedding_model_name_list = []
     embedding_model_name_list.extend(list(llm_dict.keys()))
     embedding_model_name_list.extend(list(embedding_model_dict.keys()))
-    if embedding_req.model_name is None or embedding_req.model_name not in embedding_model_name_list:
-        embedding_req.model_name = embedding_model_name_list[0]
+    if request.model_name is None or request.model_name not in embedding_model_name_list:
+        request.model_name = embedding_model_name_list[0]
 
     res = {}
 
-    if embedding_req.model_name in llm_dict:
-        llm_conf = llm_dict[embedding_req.model_name]
+    if request.model_name in llm_dict:
+        llm_conf = llm_dict[request.model_name]
         temp = {}
         try:
-            embeddings = llm_conf['model'].get_embeddings(embedding_req.sentences)
+            embeddings = llm_conf['model'].get_embeddings(request.sentences)
             embeddings = [x.tolist() for x in embeddings]
             temp.update({"embeddings": embeddings})
             temp.update({k: v for k, v in llm_conf.items() if k != 'model'})
@@ -46,12 +46,12 @@ def text_embedding(embedding_req: EmbeddingRequest):
         except Exception as e:
             logger.error(str({'EXCEPTION': e}) + '\n')
 
-    elif embedding_req.model_name in embedding_model_dict:
-        embedding_model_config = embedding_model_dict[embedding_req.model_name]
+    elif request.model_name in embedding_model_dict:
+        embedding_model_config = embedding_model_dict[request.model_name]
         temp = {}
 
         try:
-            embeddings = embedding_model_config['model'].encode(embedding_req.sentences)
+            embeddings = embedding_model_config['model'].encode(request.sentences)
             embeddings = normalize(embeddings, norm='l2')
             embeddings = [x.tolist() for x in embeddings]
             temp.update({"embeddings": embeddings})
