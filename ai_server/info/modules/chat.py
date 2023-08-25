@@ -2,6 +2,7 @@
 # @Author : YueMengRui
 from fastapi import APIRouter, Request
 from info import llm_dict, logger, limiter
+from info.configs.base_configs import API_LIMIT
 from .protocol import ChatRequest, TokenCountRequest
 from fastapi.responses import JSONResponse, StreamingResponse
 from info.utils.response_code import RET, error_map
@@ -11,13 +12,13 @@ router = APIRouter()
 
 
 @router.api_route(path='/ai/llm/list', methods=['GET'], summary="获取支持的llm列表")
-@limiter.limit("120/minute")
+@limiter.limit(API_LIMIT['model_list'])
 def support_llm_list(req: Request):
     return JSONResponse({"errcode": RET.OK, "errmsg": error_map[RET.OK], "data": {"llm_list": list(llm_dict.keys())}})
 
 
 @router.api_route('/ai/llm/chat', methods=['POST'], summary="Chat")
-@limiter.limit("15/minute")
+@limiter.limit(API_LIMIT['chat'])
 def llm_chat(chat_request: ChatRequest):
     logger.info(str(chat_request.dict()))
 
@@ -49,7 +50,7 @@ def llm_chat(chat_request: ChatRequest):
 
 
 @router.api_route('/ai/llm/token_count', methods=['POST'], summary="token count")
-@limiter.limit("60/minute")
+@limiter.limit(API_LIMIT['token_count'])
 def count_token(token_count_req: TokenCountRequest):
     logger.info(str(token_count_req.dict()))
 

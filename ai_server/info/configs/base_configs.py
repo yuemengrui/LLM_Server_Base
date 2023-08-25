@@ -41,3 +41,11 @@ EMBEDDING_MODEL_LIST = [
         "device": "cuda"
     }
 ]
+
+# API LIMIT
+API_LIMIT = {
+    "model_list": "120/minute",
+    "chat": "15/minute",
+    "token_count": "60/minute",
+    "text_embedding": "60/minute",
+}
