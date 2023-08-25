@@ -1,6 +1,6 @@
 # *_*coding:utf-8 *_*
 # @Author : YueMengRui
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from copy import deepcopy
 from sklearn.preprocessing import normalize
 from info import llm_dict, embedding_model_dict, logger, limiter
@@ -13,7 +13,7 @@ router = APIRouter()
 
 @router.api_route(path='/ai/embedding/model/list', methods=['GET'], summary="获取支持的embedding模型列表")
 @limiter.limit("120/minute")
-def support_embedding_model_list(*args, **kwargs):
+def support_embedding_model_list(req: Request):
     res = []
     res.extend(list(embedding_model_dict.keys()))
     res.extend(list(llm_dict.keys()))

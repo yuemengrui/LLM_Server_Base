@@ -1,6 +1,6 @@
 # *_*coding:utf-8 *_*
 # @Author : YueMengRui
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from info import llm_dict, logger, limiter
 from .protocol import ChatRequest, TokenCountRequest
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -12,7 +12,7 @@ router = APIRouter()
 
 @router.api_route(path='/ai/llm/list', methods=['GET'], summary="获取支持的llm列表")
 @limiter.limit("120/minute")
-def support_llm_list(*args, **kwargs):
+def support_llm_list(req: Request):
     return JSONResponse({"errcode": RET.OK, "errmsg": error_map[RET.OK], "data": {"llm_list": list(llm_dict.keys())}})
 
 
