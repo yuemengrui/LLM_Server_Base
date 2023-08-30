@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Request
 from copy import deepcopy
 from sklearn.preprocessing import normalize
-from info.configs.base_configs import API_LIMIT
+from info.configs.base_configs import API_LIMIT, EMBEDDING_ENCODE_BATCH_SIZE
 from info import llm_dict, embedding_model_dict, logger, limiter
 from fastapi.responses import JSONResponse
 from .protocol import EmbeddingRequest
@@ -51,7 +51,8 @@ def text_embedding(embedding_req: EmbeddingRequest, request: Request):
         temp = {}
 
         try:
-            embeddings = embedding_model_config['model'].encode(embedding_req.sentences)
+            embeddings = embedding_model_config['model'].encode(sentences=embedding_req.sentences,
+                                                                batch_size=EMBEDDING_ENCODE_BATCH_SIZE)
             embeddings = normalize(embeddings, norm='l2')
             embeddings = [x.tolist() for x in embeddings]
             temp.update({"embeddings": embeddings})

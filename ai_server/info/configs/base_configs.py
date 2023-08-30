@@ -5,7 +5,7 @@ FASTAPI_HOST = '0.0.0.0'
 FASTAPI_PORT = 5000
 
 LLM_HISTORY_LEN = 10
-
+EMBEDDING_ENCODE_BATCH_SIZE = 8
 LLM_MODEL_LIST = [
     {
         "model_type": "ChatGLM",
