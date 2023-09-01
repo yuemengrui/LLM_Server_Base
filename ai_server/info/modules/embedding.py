@@ -6,20 +6,20 @@ from sklearn.preprocessing import normalize
 from info.configs.base_configs import API_LIMIT, EMBEDDING_ENCODE_BATCH_SIZE
 from info import llm_dict, embedding_model_dict, logger, limiter
 from fastapi.responses import JSONResponse
-from .protocol import EmbeddingRequest
+from .protocol import EmbeddingRequest, ModelListResponse
 from info.utils.response_code import RET, error_map
 
 router = APIRouter()
 
 
-@router.api_route(path='/ai/embedding/model/list', methods=['GET'], summary="获取支持的embedding模型列表")
+@router.api_route(path='/ai/embedding/model/list', methods=['GET'], response_model=ModelListResponse,
+                  summary="获取支持的embedding模型列表")
 @limiter.limit(API_LIMIT['model_list'])
 def support_embedding_model_list(request: Request):
     res = []
     res.extend(list(embedding_model_dict.keys()))
     res.extend(list(llm_dict.keys()))
-
-    return JSONResponse({"errcode": RET.OK, "errmsg": error_map[RET.OK], "data": {"embedding_model_list": res}})
+    return JSONResponse(ModelListResponse(errcode=RET.OK, errmsg=error_map[RET.OK], data={"model_list": res}).dict())
 
 
 @router.api_route(path='/ai/embedding/text', methods=['POST'], summary="文本embedding")
