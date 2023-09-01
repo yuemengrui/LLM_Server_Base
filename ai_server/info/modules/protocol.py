@@ -2,13 +2,24 @@
 # @Author : YueMengRui
 from info.configs import *
 from pydantic import BaseModel, Field
-from typing import Dict, List, Literal, Optional, Union
+from typing import Dict, List
+
+
+class ErrorResponse(BaseModel):
+    errcode: int
+    errmsg: str
 
 
 class ModelListResponse(BaseModel):
     errcode: int
     errmsg: str
     data: dict = {"model_list": []}
+
+
+class BaseResponse(BaseModel):
+    errcode: int
+    errmsg: str
+    data: Dict = {}
 
 
 class ChatRequest(BaseModel):

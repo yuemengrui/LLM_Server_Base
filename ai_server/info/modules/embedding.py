@@ -6,7 +6,7 @@ from sklearn.preprocessing import normalize
 from info.configs.base_configs import API_LIMIT, EMBEDDING_ENCODE_BATCH_SIZE
 from info import llm_dict, embedding_model_dict, logger, limiter
 from fastapi.responses import JSONResponse
-from .protocol import EmbeddingRequest, ModelListResponse
+from .protocol import EmbeddingRequest, ModelListResponse, BaseResponse
 from info.utils.response_code import RET, error_map
 
 router = APIRouter()
@@ -15,16 +15,16 @@ router = APIRouter()
 @router.api_route(path='/ai/embedding/model/list', methods=['GET'], response_model=ModelListResponse,
                   summary="获取支持的embedding模型列表")
 @limiter.limit(API_LIMIT['model_list'])
-def support_embedding_model_list(request: Request):
+async def support_embedding_model_list(request: Request):
     res = []
     res.extend(list(embedding_model_dict.keys()))
     res.extend(list(llm_dict.keys()))
     return JSONResponse(ModelListResponse(errcode=RET.OK, errmsg=error_map[RET.OK], data={"model_list": res}).dict())
 
 
-@router.api_route(path='/ai/embedding/text', methods=['POST'], summary="文本embedding")
+@router.api_route(path='/ai/embedding/text', methods=['POST'], response_model=BaseResponse, summary="文本embedding")
 @limiter.limit(API_LIMIT['text_embedding'])
-def text_embedding(embedding_req: EmbeddingRequest, request: Request):
+async def text_embedding(embedding_req: EmbeddingRequest, request: Request):
     logger.info(str(embedding_req.dict()))
     embedding_model_name_list = []
     embedding_model_name_list.extend(list(llm_dict.keys()))
@@ -61,4 +61,4 @@ def text_embedding(embedding_req: EmbeddingRequest, request: Request):
         except Exception as e:
             logger.error(str({'EXCEPTION': e}) + '\n')
 
-    return JSONResponse({"errcode": RET.OK, "errmsg": error_map[RET.OK], "data": res})
+    return JSONResponse(BaseResponse(errcode=RET.OK, errmsg=error_map[RET.OK], data=res).dict())
