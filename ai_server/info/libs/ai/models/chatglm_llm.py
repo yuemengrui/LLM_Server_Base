@@ -188,7 +188,7 @@ class ChatGLM(BaseModel):
 
         if self.logger:
             self.logger.info(
-                str({'max_length': max_length, 'max_prompt_length': max_prompt_length}) + '\n' + str(kwargs) + '\n')
+                str({'max_length': max_length, 'max_prompt_length': max_prompt_length}) + ' ' + str(kwargs) + '\n')
 
         history = self.select_history(prompt, history, max_prompt_length)
 
@@ -206,8 +206,7 @@ class ChatGLM(BaseModel):
                     generation_tokens = self.token_counter(resp[0])
                     average_speed = f"{generation_tokens / (time.time() - start):.3f} token/s"
                     torch_gc(self.device)
-                    his = [list(x) for x in resp[1]]
-                    yield {"answer": resp[0], "history": his,
+                    yield {"answer": resp[0],
                            "usage": {"prompt_tokens": prompt_tokens, "generation_tokens": generation_tokens,
                                      "total_tokens": prompt_tokens + generation_tokens, "average_speed": average_speed}}
 
@@ -218,8 +217,7 @@ class ChatGLM(BaseModel):
             generation_tokens = self.token_counter(answer)
             average_speed = f"{generation_tokens / (time.time() - start):.3f} token/s"
             torch_gc(self.device)
-            his = [list(x) for x in history]
 
-            return {"answer": answer, "history": his,
+            return {"answer": answer,
                     "usage": {"prompt_tokens": prompt_tokens, "generation_tokens": generation_tokens,
                               "total_tokens": prompt_tokens + generation_tokens, "average_speed": average_speed}}

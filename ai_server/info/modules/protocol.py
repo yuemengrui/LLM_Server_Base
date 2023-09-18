@@ -33,7 +33,6 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     model_name: str
     answer: str
-    history: List[List[str]]
     usage: Dict
 
 

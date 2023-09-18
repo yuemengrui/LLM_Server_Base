@@ -27,7 +27,7 @@ class BaiChuan(BaseModel):
         self.logger = logger
         self._load_model(model_name_or_path, device)
         self.max_length = self.model.config.model_max_length
-        self.max_prompt_length = self.max_length - 512
+        self.max_prompt_length = self.max_length - self.model.generation_config.max_new_tokens
 
     def _load_model(self, model_name_or_path, device):
 
@@ -120,8 +120,7 @@ class BaiChuan(BaseModel):
                               ] + round_input
             else:
                 self.logger.warning(f"message role not supported yet: {message['role']}\n")
-        if self.logger:
-            self.logger.info(str({'prompt_len': len(total_input), 'prompt': self.tokenizer.decode(total_input)}) + '\n')
+
         total_input.append(self.model.generation_config.assistant_token_id)
         return total_input
 
@@ -130,7 +129,7 @@ class BaiChuan(BaseModel):
         if max_prompt_length is None or max_prompt_length > self.max_prompt_length:
             max_prompt_length = self.max_prompt_length
         if self.logger:
-            self.logger.info(str({'max_prompt_length': max_prompt_length}) + '\n' + str(kwargs) + '\n')
+            self.logger.info(str({'max_prompt_length': max_prompt_length}) + ' ' + str(kwargs) + '\n')
 
         history = self.select_history(prompt, history, max_prompt_length)
 
@@ -154,9 +153,8 @@ class BaiChuan(BaseModel):
                 for resp in self.model.chat(self.tokenizer, messages, stream=True, **kwargs):
                     generation_tokens = len(self.tokenizer.encode(resp))
                     average_speed = f"{generation_tokens / (time.time() - start):.3f} token/s"
-                    history.append([prompt, resp])
                     torch_gc(self.device)
-                    yield {"answer": resp, "history": history,
+                    yield {"answer": resp,
                            "usage": {"prompt_tokens": prompt_tokens, "generation_tokens": generation_tokens,
                                      "total_tokens": prompt_tokens + generation_tokens, "average_speed": average_speed}}
 
@@ -167,11 +165,10 @@ class BaiChuan(BaseModel):
             resp = self.model.chat(self.tokenizer, messages, **kwargs)
             generation_tokens = len(self.tokenizer.encode(resp))
             average_speed = f"{generation_tokens / (time.time() - start):.3f} token/s"
-            history.append([prompt, resp])
 
             torch_gc(self.device)
 
-            return {"answer": resp, "history": history,
+            return {"answer": resp,
                     "usage": {"prompt_tokens": prompt_tokens, "generation_tokens": generation_tokens,
                               "total_tokens": prompt_tokens + generation_tokens, "average_speed": average_speed}}
 
