@@ -13,14 +13,14 @@ router = APIRouter()
 
 @router.api_route(path='/ai/llm/list', methods=['GET'], response_model=ModelListResponse, summary="获取支持的llm列表")
 @limiter.limit(API_LIMIT['model_list'])
-async def support_llm_list(request: Request):
+def support_llm_list(request: Request):
     return JSONResponse(
         ModelListResponse(errcode=RET.OK, errmsg=error_map[RET.OK], data={"model_list": list(llm_dict.keys())}).dict())
 
 
 @router.api_route('/ai/llm/chat', methods=['POST'], summary="Chat")
 @limiter.limit(API_LIMIT['chat'])
-async def llm_chat(chat_req: ChatRequest, request: Request):
+def llm_chat(chat_req: ChatRequest, request: Request):
     logger.info(str(chat_req.dict()))
 
     model_name_list = list(llm_dict.keys())
@@ -52,7 +52,7 @@ async def llm_chat(chat_req: ChatRequest, request: Request):
 
 @router.api_route('/ai/llm/token_count', methods=['POST'], summary="token count")
 @limiter.limit(API_LIMIT['token_count'])
-async def count_token(token_count_req: TokenCountRequest, request: Request):
+def count_token(token_count_req: TokenCountRequest, request: Request):
     logger.info(str(token_count_req.dict()))
 
     model_name_list = list(llm_dict.keys())

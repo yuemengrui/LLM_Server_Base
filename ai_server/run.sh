@@ -1,2 +1,2 @@
 # prod
-CUDA_VISIBLE_DEVICES=0 uvicorn manage_llm_server_base:app
+CUDA_VISIBLE_DEVICES=0 nohup python manage_llm_server_base.py &

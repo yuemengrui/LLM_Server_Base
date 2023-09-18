@@ -15,7 +15,7 @@ router = APIRouter()
 @router.api_route(path='/ai/embedding/model/list', methods=['GET'], response_model=ModelListResponse,
                   summary="获取支持的embedding模型列表")
 @limiter.limit(API_LIMIT['model_list'])
-async def support_embedding_model_list(request: Request):
+def support_embedding_model_list(request: Request):
     res = []
     res.extend(list(embedding_model_dict.keys()))
     res.extend(list(llm_dict.keys()))
@@ -24,7 +24,7 @@ async def support_embedding_model_list(request: Request):
 
 @router.api_route(path='/ai/embedding/text', methods=['POST'], response_model=BaseResponse, summary="文本embedding")
 @limiter.limit(API_LIMIT['text_embedding'])
-async def text_embedding(embedding_req: EmbeddingRequest, request: Request):
+def text_embedding(embedding_req: EmbeddingRequest, request: Request):
     logger.info(str(embedding_req.dict()))
     embedding_model_name_list = []
     embedding_model_name_list.extend(list(llm_dict.keys()))
