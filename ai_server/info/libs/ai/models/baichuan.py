@@ -28,7 +28,15 @@ class BaiChuan(BaseModel):
         self.logger = logger
         self._load_model(model_name_or_path, device)
         self.max_length = self.model.config.model_max_length
-        self.max_prompt_length = self.max_length - 512
+        self.max_prompt_length = self.max_length - self.model.generation_config.max_new_tokens
+
+        if self.logger:
+            self.logger.info(str({'config': self.model.config}) + '\n')
+            self.logger.info(str({'config': self.model.generation_config}) + '\n')
+            self.logger.info(str({'max_length': self.max_length, 'max_prompt_length': self.max_prompt_length}) + '\n')
+
+        # warmup
+        self.lets_chat('你好', [], stream=False)
 
     def _load_model(self, model_name_or_path, device):
 
@@ -160,7 +168,7 @@ class BaiChuan(BaseModel):
                     average_speed = f"{generation_tokens / time_cost:.3f} token/s"
                     # history[-1][1] = resp
                     torch_gc(self.device)
-                    yield {"answer": resp, "history": history,"time_cost": f"{time_cost:.3f}s",
+                    yield {"answer": resp, "history": history, "time_cost": f"{time_cost:.3f}s",
                            "usage": {"prompt_tokens": prompt_tokens, "generation_tokens": generation_tokens,
                                      "total_tokens": prompt_tokens + generation_tokens, "average_speed": average_speed}}
 

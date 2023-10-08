@@ -69,7 +69,7 @@ class ChatGLM(BaseModel):
         if model_name and '32k' in model_name:
             self.max_length = 32768
 
-        self.max_prompt_length = self.max_length - 512
+        self.max_prompt_length = self.max_length - 2048
         self._load_model(model_name_or_path, device)
 
     def _load_model(self,
@@ -204,10 +204,11 @@ class ChatGLM(BaseModel):
                 start = time.time()
                 for resp in self.model.stream_chat(self.tokenizer, prompt, history, max_length=max_length, **kwargs):
                     generation_tokens = self.token_counter(resp[0])
-                    average_speed = f"{generation_tokens / (time.time() - start):.3f} token/s"
+                    time_cost = time.time() - start
+                    average_speed = f"{generation_tokens / time_cost:.3f} token/s"
                     torch_gc(self.device)
                     # his = [list(x) for x in resp[1]]
-                    yield {"answer": resp[0], "history": history,
+                    yield {"answer": resp[0], "history": history, "time_cost": f"{time_cost:.3f}s",
                            "usage": {"prompt_tokens": prompt_tokens, "generation_tokens": generation_tokens,
                                      "total_tokens": prompt_tokens + generation_tokens, "average_speed": average_speed}}
 
@@ -216,10 +217,11 @@ class ChatGLM(BaseModel):
             start = time.time()
             answer, _ = self.model.chat(self.tokenizer, prompt, history, max_length=max_length, **kwargs)
             generation_tokens = self.token_counter(answer)
-            average_speed = f"{generation_tokens / (time.time() - start):.3f} token/s"
+            time_cost = time.time() - start
+            average_speed = f"{generation_tokens / time_cost:.3f} token/s"
             torch_gc(self.device)
             # his = [list(x) for x in history]
 
-            return {"answer": answer, "history": history,
+            return {"answer": answer, "history": history, "time_cost": f"{time_cost:.3f}s",
                     "usage": {"prompt_tokens": prompt_tokens, "generation_tokens": generation_tokens,
                               "total_tokens": prompt_tokens + generation_tokens, "average_speed": average_speed}}
