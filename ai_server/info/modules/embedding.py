@@ -1,28 +1,31 @@
 # *_*coding:utf-8 *_*
 # @Author : YueMengRui
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from copy import deepcopy
 from sklearn.preprocessing import normalize
-from info import llm_dict, embedding_model_dict, logger
+from info.configs.base_configs import API_LIMIT, EMBEDDING_ENCODE_BATCH_SIZE
+from info import llm_dict, embedding_model_dict, logger, limiter
 from fastapi.responses import JSONResponse
-from .protocol import EmbeddingRequest
+from .protocol import EmbeddingRequest, ModelListResponse, BaseResponse
 from info.utils.response_code import RET, error_map
 
 router = APIRouter()
 
 
-@router.api_route(path='/ai/embedding/model/list', methods=['GET'], summary="获取支持的embedding模型列表")
-def support_embedding_model_list():
+@router.api_route(path='/ai/embedding/model/list', methods=['GET'], response_model=ModelListResponse,
+                  summary="获取支持的embedding模型列表")
+@limiter.limit(API_LIMIT['model_list'])
+def support_embedding_model_list(request: Request):
     res = []
     res.extend(list(embedding_model_dict.keys()))
     res.extend(list(llm_dict.keys()))
+    return JSONResponse(ModelListResponse(errcode=RET.OK, errmsg=error_map[RET.OK], data={"model_list": res}).dict())
 
-    return JSONResponse({"errcode": RET.OK, "errmsg": error_map[RET.OK], "data": {"embedding_model_list": res}})
 
-
-@router.api_route(path='/ai/embedding/text', methods=['POST'], summary="文本embedding")
-def text_embedding(embedding_req: EmbeddingRequest):
-    logger.info(str(embedding_req.dict()) + '\n')
+@router.api_route(path='/ai/embedding/text', methods=['POST'], response_model=BaseResponse, summary="文本embedding")
+@limiter.limit(API_LIMIT['text_embedding'])
+def text_embedding(embedding_req: EmbeddingRequest, request: Request):
+    logger.info(str(embedding_req.dict()))
     embedding_model_name_list = []
     embedding_model_name_list.extend(list(llm_dict.keys()))
     embedding_model_name_list.extend(list(embedding_model_dict.keys()))
@@ -48,7 +51,8 @@ def text_embedding(embedding_req: EmbeddingRequest):
         temp = {}
 
         try:
-            embeddings = embedding_model_config['model'].encode(embedding_req.sentences)
+            embeddings = embedding_model_config['model'].encode(sentences=embedding_req.sentences,
+                                                                batch_size=EMBEDDING_ENCODE_BATCH_SIZE)
             embeddings = normalize(embeddings, norm='l2')
             embeddings = [x.tolist() for x in embeddings]
             temp.update({"embeddings": embeddings})
@@ -57,4 +61,4 @@ def text_embedding(embedding_req: EmbeddingRequest):
         except Exception as e:
             logger.error(str({'EXCEPTION': e}) + '\n')
 
-    return JSONResponse({"errcode": RET.OK, "errmsg": error_map[RET.OK], "data": res})
+    return JSONResponse(BaseResponse(errcode=RET.OK, errmsg=error_map[RET.OK], data=res).dict())

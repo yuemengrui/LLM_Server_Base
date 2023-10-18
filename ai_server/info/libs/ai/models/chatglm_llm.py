@@ -1,7 +1,7 @@
 # *_*coding:utf-8 *_*
 # @Author : YueMengRui
+import time
 import torch
-from copy import deepcopy
 import torch.nn.functional as F
 from .base_model import BaseModel
 from transformers import AutoTokenizer, AutoModel
@@ -69,7 +69,7 @@ class ChatGLM(BaseModel):
         if model_name and '32k' in model_name:
             self.max_length = 32768
 
-        self.max_prompt_length = self.max_length - 512
+        self.max_prompt_length = self.max_length - 2048
         self._load_model(model_name_or_path, device)
 
     def _load_model(self,
@@ -124,7 +124,7 @@ class ChatGLM(BaseModel):
 
         self.model = self.model.eval()
 
-    def get_embeddings(self, sentences):
+    def get_embeddings(self, sentences: List):
         embeddings = []
         for text in sentences:
             input_ids = self.tokenizer.encode(text, return_tensors="pt").to(self.device)
@@ -134,6 +134,14 @@ class ChatGLM(BaseModel):
             embeddings.append(data)
 
         return embeddings
+
+    def check_token_len(self, prompt: str):
+        code = True
+        prompt_token_len = self.token_counter("[Round 1]\n\n问：{}\n\n答：".format(prompt))
+        if prompt_token_len > self.max_length:
+            code = False
+
+        return code, prompt_token_len, self.max_length
 
     def token_counter(self, prompt):
         return len(self.tokenizer(prompt, return_tensors="pt").input_ids[0])
@@ -193,22 +201,27 @@ class ChatGLM(BaseModel):
 
         if stream:
             def stream_generator():
+                start = time.time()
                 for resp in self.model.stream_chat(self.tokenizer, prompt, history, max_length=max_length, **kwargs):
                     generation_tokens = self.token_counter(resp[0])
+                    time_cost = time.time() - start
+                    average_speed = f"{generation_tokens / time_cost:.3f} token/s"
                     torch_gc(self.device)
-                    his = [list(x) for x in resp[1]]
-                    yield {"answer": resp[0], "history": his,
+                    # his = [list(x) for x in resp[1]]
+                    yield {"answer": resp[0], "history": history, "time_cost": {"generation": f"{time_cost:.3f}s"},
                            "usage": {"prompt_tokens": prompt_tokens, "generation_tokens": generation_tokens,
-                                     "total_tokens": prompt_tokens + generation_tokens}}
+                                     "total_tokens": prompt_tokens + generation_tokens, "average_speed": average_speed}}
 
             return stream_generator()
         else:
-            answer, history = self.model.chat(self.tokenizer, prompt, history, max_length=max_length, **kwargs)
+            start = time.time()
+            answer, _ = self.model.chat(self.tokenizer, prompt, history, max_length=max_length, **kwargs)
             generation_tokens = self.token_counter(answer)
-
+            time_cost = time.time() - start
+            average_speed = f"{generation_tokens / time_cost:.3f} token/s"
             torch_gc(self.device)
-            his = [list(x) for x in history]
+            # his = [list(x) for x in history]
 
-            return {"answer": answer, "history": his,
+            return {"answer": answer, "history": history, "time_cost": {"generation": f"{time_cost:.3f}s"},
                     "usage": {"prompt_tokens": prompt_tokens, "generation_tokens": generation_tokens,
-                              "total_tokens": prompt_tokens + generation_tokens}}
+                              "total_tokens": prompt_tokens + generation_tokens, "average_speed": average_speed}}
