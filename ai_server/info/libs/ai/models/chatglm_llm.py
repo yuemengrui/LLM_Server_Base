@@ -208,7 +208,7 @@ class ChatGLM(BaseModel):
                     average_speed = f"{generation_tokens / time_cost:.3f} token/s"
                     torch_gc(self.device)
                     # his = [list(x) for x in resp[1]]
-                    yield {"answer": resp[0], "history": history, "time_cost": f"{time_cost:.3f}s",
+                    yield {"answer": resp[0], "history": history, "time_cost": {"generation": f"{time_cost:.3f}s"},
                            "usage": {"prompt_tokens": prompt_tokens, "generation_tokens": generation_tokens,
                                      "total_tokens": prompt_tokens + generation_tokens, "average_speed": average_speed}}
 
@@ -222,6 +222,6 @@ class ChatGLM(BaseModel):
             torch_gc(self.device)
             # his = [list(x) for x in history]
 
-            return {"answer": answer, "history": history, "time_cost": f"{time_cost:.3f}s",
+            return {"answer": answer, "history": history, "time_cost": {"generation": f"{time_cost:.3f}s"},
                     "usage": {"prompt_tokens": prompt_tokens, "generation_tokens": generation_tokens,
                               "total_tokens": prompt_tokens + generation_tokens, "average_speed": average_speed}}

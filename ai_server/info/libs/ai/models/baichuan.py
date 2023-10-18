@@ -168,7 +168,7 @@ class BaiChuan(BaseModel):
                     average_speed = f"{generation_tokens / time_cost:.3f} token/s"
                     # history[-1][1] = resp
                     torch_gc(self.device)
-                    yield {"answer": resp, "history": history, "time_cost": f"{time_cost:.3f}s",
+                    yield {"answer": resp, "history": history, "time_cost": {"generation": f"{time_cost:.3f}s"},
                            "usage": {"prompt_tokens": prompt_tokens, "generation_tokens": generation_tokens,
                                      "total_tokens": prompt_tokens + generation_tokens, "average_speed": average_speed}}
 
@@ -184,7 +184,7 @@ class BaiChuan(BaseModel):
 
             torch_gc(self.device)
 
-            return {"answer": resp, "history": history, "time_cost": f"{time_cost:.3f}s",
+            return {"answer": resp, "history": history, "time_cost": {"generation": f"{time_cost:.3f}s"},
                     "usage": {"prompt_tokens": prompt_tokens, "generation_tokens": generation_tokens,
                               "total_tokens": prompt_tokens + generation_tokens, "average_speed": average_speed}}
 
