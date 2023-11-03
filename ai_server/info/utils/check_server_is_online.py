@@ -18,6 +18,7 @@ def server_is_online(logger):
                 llm_dict.update(
                     {llm_name: {"chat": LLM_SERVER_CHAT.replace('{port}', str(LLM_SERVER_PORT[llm_name])),
                                 "token_count": LLM_SERVER_TOKEN_COUNT.replace('{port}', str(LLM_SERVER_PORT[llm_name]))}})
+                logger.info(f"{llm_name} server online")
             else:
                 logger.error(f"{llm_name} server offline!!!  {resp.text}")
         except Exception as e:
