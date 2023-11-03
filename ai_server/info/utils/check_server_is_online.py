@@ -13,10 +13,10 @@ def server_is_online(logger):
     }
     for llm_name in LLM_SERVER_PORT:
         try:
-            resp = requests.post(url=LLM_SERVER_CHAT.replace('{port}', LLM_SERVER_PORT[llm_name]), json=req_data)
+            resp = requests.post(url=LLM_SERVER_CHAT.replace('{port}', str(LLM_SERVER_PORT[llm_name])), json=req_data)
             if resp.status_code == 200:
                 llm_dict.update(
-                    {llm_name: {"chat": LLM_SERVER_CHAT.replace('{port}', LLM_SERVER_PORT[llm_name]),
+                    {llm_name: {"chat": LLM_SERVER_CHAT.replace('{port}', str(LLM_SERVER_PORT[llm_name])),
                                 "token_count": LLM_SERVER_TOKEN_COUNT.replace('{port}', LLM_SERVER_PORT[llm_name])}})
             else:
                 logger.error(f"{llm_name} server offline!!!  {resp.text}")
