@@ -2,7 +2,7 @@
 # @Author : YueMengRui
 import sys
 import requests
-from logger import logger
+from mylogger import logger
 from configs import LLM_SERVER_PORT, LLM_SERVER_CHAT, LLM_SERVER_TOKEN_COUNT
 
 

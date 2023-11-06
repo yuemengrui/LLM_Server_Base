@@ -1,6 +1,6 @@
 # *_*coding:utf-8 *_*
 import time
-from logger import logger
+from mylogger import logger
 from fastapi.requests import Request
 from starlette.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler

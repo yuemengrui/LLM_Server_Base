@@ -1,7 +1,7 @@
 # *_*coding:utf-8 *_*
 # @Author : YueMengRui
 import requests
-from logger import logger
+from mylogger import logger
 from fastapi import APIRouter, Request
 from info import llm_dict, llm_name_list, limiter
 from configs import API_LIMIT
