@@ -1,9 +1,12 @@
 # *_*coding:utf-8 *_*
 # @Author : YueMengRui
+import os
 
 FASTAPI_HOST = '0.0.0.0'
 FASTAPI_PORT = 5000
 
+LOG_DIR = 'logs'
+os.makedirs(LOG_DIR, exist_ok=True)
 # LLM Server
 LLM_SERVER_PREFIX = "http://127.0.0.1"
 LLM_SERVER_PORT = {

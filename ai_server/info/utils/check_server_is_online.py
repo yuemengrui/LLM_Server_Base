@@ -2,10 +2,11 @@
 # @Author : YueMengRui
 import sys
 import requests
-from info.configs import LLM_SERVER_PORT, LLM_SERVER_CHAT, LLM_SERVER_TOKEN_COUNT
+from logger import logger
+from configs import LLM_SERVER_PORT, LLM_SERVER_CHAT, LLM_SERVER_TOKEN_COUNT
 
 
-def server_is_online(logger):
+def server_is_online():
     llm_dict = {}
     req_data = {
         "prompt": "你好",
@@ -17,7 +18,8 @@ def server_is_online(logger):
             if resp.status_code == 200:
                 llm_dict.update(
                     {llm_name: {"chat": LLM_SERVER_CHAT.replace('{port}', str(LLM_SERVER_PORT[llm_name])),
-                                "token_count": LLM_SERVER_TOKEN_COUNT.replace('{port}', str(LLM_SERVER_PORT[llm_name]))}})
+                                "token_count": LLM_SERVER_TOKEN_COUNT.replace('{port}',
+                                                                              str(LLM_SERVER_PORT[llm_name]))}})
                 logger.info(f"{llm_name} server online")
             else:
                 logger.error(f"{llm_name} server offline!!!  {resp.text}")
