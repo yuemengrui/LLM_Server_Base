@@ -2,6 +2,7 @@
 # @Author : YueMengRui
 import os
 
+FASTAPI_TITLE = 'LLM_Server_Base'
 FASTAPI_HOST = '0.0.0.0'
 FASTAPI_PORT = 5000
 

@@ -4,7 +4,7 @@ import requests
 from logger import logger
 from fastapi import APIRouter, Request
 from info import llm_dict, llm_name_list, limiter
-from configs.base_configs import API_LIMIT
+from configs import API_LIMIT
 from .protocol import ChatRequest, TokenCountRequest, ModelListResponse, ErrorResponse, ModelCard
 from fastapi.responses import JSONResponse, StreamingResponse
 from info.utils.response_code import RET, error_map
