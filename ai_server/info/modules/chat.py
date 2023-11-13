@@ -41,12 +41,12 @@ def llm_chat(request: Request,
 
             return StreamingResponse(stream_generate(), media_type="text/event-stream")
         else:
-            return resp
+            return JSONResponse(resp.json())
 
     else:
         resp = requests.post(url=llm_dict[req.model_name]['chat'], json=req.dict())
 
-        return resp
+        return JSONResponse(resp.json())
 
 
 @router.api_route('/ai/llm/token_count', methods=['POST'], summary="token count")
@@ -62,4 +62,4 @@ def count_token(request: Request,
 
     resp = requests.post(url=llm_dict[req.model_name]['token_count'], json=req.dict())
 
-    return resp
+    return JSONResponse(resp.json())
