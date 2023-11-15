@@ -4,8 +4,8 @@ import requests
 from mylogger import logger
 from fastapi import APIRouter, Request
 from info import llm_dict, llm_name_list, limiter
-from configs import API_LIMIT
-from .protocol import ChatRequest, TokenCountRequest, ModelListResponse, ErrorResponse, ModelCard
+from configs import API_LIMIT, QWENVL_CHAT
+from .protocol import ChatRequest, TokenCountRequest, ModelListResponse, ErrorResponse, ModelCard, ChatQwenVLRequest
 from fastapi.responses import JSONResponse, StreamingResponse
 from info.utils.response_code import RET, error_map
 
@@ -63,3 +63,27 @@ def count_token(request: Request,
     resp = requests.post(url=llm_dict[req.model_name]['token_count'], json=req.dict())
 
     return JSONResponse(resp.json())
+
+
+@router.api_route('/ai/llm/chat/qwenvl', methods=['POST'], summary="Chat")
+@limiter.limit(API_LIMIT['chat'])
+def llm_chat_qwenvl(request: Request,
+                    req: ChatQwenVLRequest
+                    ):
+    logger.info(req.dict())
+
+    if req.stream:
+        resp = requests.post(url=QWENVL_CHAT, json=req.dict(), stream=True)
+        if 'event-stream' in resp.headers.get('content-type'):
+            def stream_generate():
+                for line in resp.iter_content(chunk_size=None):
+                    yield line
+
+            return StreamingResponse(stream_generate(), media_type="text/event-stream")
+        else:
+            return JSONResponse(resp.json())
+
+    else:
+        resp = requests.post(url=QWENVL_CHAT, json=req.dict())
+
+        return JSONResponse(resp.json())

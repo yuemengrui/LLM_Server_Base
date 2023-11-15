@@ -19,6 +19,8 @@ LLM_SERVER_PORT = {
 LLM_SERVER_CHAT = LLM_SERVER_PREFIX + ":{port}/ai/llm/chat"
 LLM_SERVER_TOKEN_COUNT = LLM_SERVER_PREFIX + ":{port}/ai/llm/token_count"
 
+QWENVL_CHAT = 'http://127.0.0.1:11000/ai/llm/chat'
+
 # API LIMIT
 API_LIMIT = {
     "model_list": "120/minute",
